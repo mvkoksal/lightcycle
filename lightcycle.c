@@ -23,8 +23,9 @@ void sleep_ms(size_t ms) {
   while (nanosleep(&ts, &ts) != 0) {}
 }
 
+// Read the array and print the grid accordingly 
 void print_grid(int grid[WIDTH * LENGTH]) {
-  for (int i = 0; i < WIDTH * LENGTH; i++){
+  for (int i = 0; i < WIDTH * LENGTH; i++) {
     int row = i / WIDTH;
     int col = i % WIDTH;
     // Empty spaces
@@ -32,16 +33,17 @@ void print_grid(int grid[WIDTH * LENGTH]) {
       attron(COLOR_PAIR(0));
       mvprintw(row, 2*col, "  ");
       attroff(COLOR_PAIR(0));
-    // Player 1
+    // Player 1 trail
     } else if (grid[i] == 1) {
       attron(COLOR_PAIR(1));
       mvprintw(row, 2*col, "  ");
       attroff(COLOR_PAIR(1));
-    // Player 2
+    // Player 2 trail
     } else if (grid[i] == 2) {
       attron(COLOR_PAIR(2));
       mvprintw(row, 2*col, "  ");
       attroff(COLOR_PAIR(2));
+    // Borders
     } else if (grid[i] == 3) {
       attron(COLOR_PAIR(3));
       mvprintw(row, 2*col, "  ");
@@ -50,7 +52,10 @@ void print_grid(int grid[WIDTH * LENGTH]) {
   }
 }
 
+// Initialize the elements of the grid array to 0
+// Set the borders of the grid array to 3
 void print_default_grid(int grid[WIDTH * LENGTH]) {
+  // Initialize to 0
   for (int i=0; i < WIDTH*LENGTH; i++) {
     grid[i] = 0;
   }
@@ -62,24 +67,56 @@ void print_default_grid(int grid[WIDTH * LENGTH]) {
   for (int i=(LENGTH-1)*37; i<WIDTH*LENGTH; i++) {
     grid[i] = 3;
   }
-  //Left border
+  // Left border
   for (int i=0; i<=(LENGTH-1)*37; i+=37) {
     grid[i] = 3;
   }
-  //Right border
+  // Right border
   for (int i=36; i<WIDTH*LENGTH; i+=37) {
     grid[i] = 3;
   }
 }
 
+// Print a white box in the middle of the grid
+// to be used to display the win message on it.
 void white_box () {
   attron(COLOR_PAIR(3));
-  for (int k=12; k < 17; k ++) {
-  for (int i=12; i < 24; i++) {
-    mvprintw(k, 2*i, "  ");
-  }
+  // Loop through rows
+  for (int k=12; k < 17; k++) {
+    // Loop through columns
+    for (int i=12; i < 24; i++) {
+      mvprintw(k, 2*i, "  ");
+    }
   }
   attroff(COLOR_PAIR(3));
+}
+
+// Check if the game has ended, display the relevant win message
+bool winner_check (int winner) {
+  if (winner == 3) {
+      attron(COLOR_PAIR(3));
+      white_box();
+      mvprintw(13, 2*15, "Tie game!");
+      mvprintw(15, 2*13, "Press space to exit.");
+      attroff(COLOR_PAIR(3));
+      return true;
+  } else if (winner == 1) {
+      attron(COLOR_PAIR(3));
+      white_box();
+      mvprintw(13, 2*15, "Yellow wins!");
+      mvprintw(15, 2*13, "Press space to exit.");
+      attroff(COLOR_PAIR(3));
+      return true;
+  } else if (winner == 2) {
+      attron(COLOR_PAIR(3));
+      white_box();
+      mvprintw(13, 2*15, "Blue wins!");
+      mvprintw(15, 2*13, "Press space to exit.");
+      attroff(COLOR_PAIR(3));
+      return true;
+  } else {
+      return false;
+  }
 }
 
 int main() {
@@ -93,7 +130,7 @@ int main() {
   // Tell ncurses to initialize color support
   start_color();
 
-// Color pair 0 is white text on a black background
+  // Color pair 0 is white text on a black background
   init_pair(0, COLOR_WHITE, COLOR_BLACK);
 
   // Color pair 1 is white text on a yellow background
@@ -105,38 +142,40 @@ int main() {
   // Color pair 3 is black text on a white background;
   init_pair(3, COLOR_BLACK, COLOR_WHITE);
 
-  // Color pair 4 is red text on a red background; REMOVE THIS ONCE DONE
-  init_pair(4, COLOR_RED, COLOR_RED);
-
+  // Initialize the two cursors' state
   int cursor1_x = 1;
   int cursor1_y = 17;
   int cursor2_x = 25;
   int cursor2_y = 17;
-  // Calculate the cursor index in the maze array.
+
+  // Variables storing the two cursors' indexes in the grid array
   int cursor1_index;
   int cursor2_index;
+
+  // Variables tracking the directions of the two cursors
+  // 'd' for down, 'u' for up, 'r' for right, and 'l' for left
   char dir1 = 'd'; //down
   char dir2 = 'u'; //up
 
-  int winner=100; 
-  // 0 - tie; 1 - player1; 2 - player2
-  // we set winner to something other than 0 1 or 2.
+  // Variable storing the winner
+  // 0 - no winner; 1 - player1; 2 - player2; 3 - tie
+  int winner = 0; 
 
-
+  // Empty grid
   int grid[WIDTH * LENGTH];
   print_default_grid (grid);
 
-
+  // Start the game loop
   bool running = true;
   while (running) {
+    // Check for user input
     int input = getch();
-
     while (input != ERR) {
       if (input == ' ') {
-        // Quit
+        // Exit when the user presses space
         running = false;
       
-      // Set curser1 direction
+      // Set the direction of curser1
       } else if (input == KEY_UP) {
       dir1 = 'u';
       } else if (input == KEY_DOWN) {
@@ -146,7 +185,7 @@ int main() {
       } else if (input == KEY_RIGHT) {
       dir1 = 'r';
 
-      // Set cursor2 direction
+      // Set the direction of cursor2
       } else if (input == 'w') {
       dir2 = 'u';
       } else if (input == 's') {
@@ -156,40 +195,26 @@ int main() {
       } else if (input == 'd') {
       dir2 = 'r';
       }
-
+    // Detect concurrent inputs
     input = getch();
     }
 
-    if (winner == 0) {
-      attron(COLOR_PAIR(3));
-      white_box();
-      mvprintw(13, 2*15, "Tie game!");
-      mvprintw(15, 2*13, "Press space to exit.");
-      attroff(COLOR_PAIR(3));
-      continue;
-    } else if (winner == 1) {
-      attron(COLOR_PAIR(3));
-      white_box();
-      mvprintw(13, 2*15, "Yellow wins!");
-      mvprintw(15, 2*13, "Press space to exit.");
-      attroff(COLOR_PAIR(3));
-      continue;
-    } else if (winner == 2) {
-      attron(COLOR_PAIR(3));
-      white_box();
-      mvprintw(13, 2*15, "Blue wins!");
-      mvprintw(15, 2*13, "Press space to exit.");
-      attroff(COLOR_PAIR(3));
+    // Pause the game if the game has ended
+    if (winner_check(winner)) {
       continue;
     }
-
+    
+    // Calculate the two cursors' indexes in the grid array
     cursor1_index = (cursor1_x * WIDTH) + cursor1_y;
     cursor2_index = (cursor2_x * WIDTH) + cursor2_y;
-  
+
+    // Modify the grid array to store the current position of the two cursors
+    // The modified grid enables the two players 
+    // to leave a trail behind them as they move
     grid[cursor1_index] = 1;
     grid[cursor2_index] = 2;
 
-    // MOVE PLAYER1
+    // Update the state of player1
     if (dir1 == 'u') {
     // Move the cursor up
     cursor1_x--;
@@ -207,7 +232,7 @@ int main() {
     cursor1_y++;
     }
 
-    //MOVE PLAYER2
+    //Update the state of player2
     if (dir2 == 'u') {
     // Move the cursor up
     cursor2_x--;
@@ -225,21 +250,28 @@ int main() {
     cursor2_y++;
     }
 
+     // After the state update, calculate the new indexes 
+     // of both cursors in the grid array.
+     // Check if the next positions are not empty spaces.
+     // If they aren't, set the winner variable to end the game
     cursor1_index = (cursor1_x * WIDTH) + cursor1_y;
     cursor2_index = (cursor2_x * WIDTH) + cursor2_y;
-
+    // Tie
     if (grid[cursor1_index] != 0 && grid[cursor2_index] != 0) {
-      winner = 0;
+      winner = 3;
+    // Player2 wins
     } else if (grid[cursor1_index] != 0 && grid[cursor2_index] == 0) {
       winner = 2;
+      // Player1 wins
     } else if (grid[cursor1_index] == 0 && grid[cursor2_index] != 0) {
       winner = 1;
     }
 
   print_grid(grid);
 
-
   refresh();
+  
+  // Pause to limit frame rate
   sleep_ms(1000 / FRAME_RATE);
 
   }
